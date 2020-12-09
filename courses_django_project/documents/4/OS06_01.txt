@@ -1,0 +1,11 @@
+-cmd/wmic
+wmic memorychip get banklabel, capacity, speed, manufacturer
+wmic memcache get purpose, maxcachesize
+
+-powershell
+Get-WmiObject -Class "Win32_PhysicalMemory"
+
+-cmd/systeminfo
+systeminfo | findstr "памят"
+
+-performance monitor
