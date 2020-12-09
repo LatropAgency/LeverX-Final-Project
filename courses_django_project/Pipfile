@@ -10,6 +10,7 @@ djangorestframework-simplejwt = "*"
 pymysql = "*"
 drf-yasg = "*"
 cryptography = "*"
+drf-nested-routers = "*"
 
 [dev-packages]
 

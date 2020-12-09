@@ -7,23 +7,29 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
-from core.permissions import TeacherOrStudentReadOnly, TeacherOnly, StudentOrTeacherReadOnly, StudentOnly, IsParticipant
+from core.error_serializer import ErrorSerializer
+from core.success_serializer import SuccessSerializer
+from core.permissions import (
+    TeacherOrStudentReadOnly,
+    IsParticipant,
+    TeacherOnly,
+    StudentOnly,
+)
 
 from users.models import User
 from users.enum_types import RoleTypes
 
-from courses.serializers import UserSerializer, TaskSerializer, SolutionSerializer, MarkSerializer, CommentSerializer, \
-    SuccessSerializer, ErrorSerializer
+from courses.api.v1.serializers import (
+    SolutionSerializer,
+    CommentSerializer,
+    TaskSerializer,
+    MarkSerializer,
+)
 from courses.models import Course, Lecture, Task, Solution, Mark, Comment
-from courses.serializers import CourseSerializer, LectureSerializer, ParticipantSerializer
+from courses.api.v1.serializers import CourseSerializer, LectureSerializer, ParticipantSerializer
 
 
-class UserList(mixins.CreateModelMixin, generics.GenericAPIView):
-    permission_classes = [~IsAuthenticated]
-    serializer_class = UserSerializer
 
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
 
 
 class CourseViewSet(viewsets.ModelViewSet):

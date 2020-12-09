@@ -1,22 +1,15 @@
 from rest_framework import serializers
 
-from users.models import User
-from courses.models import Course, Lecture, Task, Solution, Mark, Comment
+from courses.models import (
+    Solution,
+    Lecture,
+    Comment,
+    Course,
+    Mark,
+    Task,
+)
 
-
-class UserSerializer(serializers.ModelSerializer):
-    def create(self, validated_data):
-        user = super().create(validated_data)
-        user.set_password(validated_data['password'])
-        user.save()
-        return user
-
-    class Meta:
-        model = User
-        fields = ('id', 'username', 'password', 'role')
-        extra_kwargs = {
-            'password': {'write_only': True},
-        }
+from users.api.v1.serializers import UserSerializer
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -30,7 +23,7 @@ class CourseSerializer(serializers.ModelSerializer):
 class LectureSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lecture
-        fields = ('id', 'course', 'topic', 'document')
+        fields = ('id', 'topic', 'document')
 
 
 class ParticipantSerializer(serializers.Serializer):
@@ -67,18 +60,3 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ('id', 'mark', 'user', 'text')
-
-
-class SuccessSerializer(serializers.Serializer):
-    success = serializers.BooleanField(initial=True)
-
-    class Meta:
-        fields = ('success',)
-        read_only_fields = ('success',)
-
-
-class ErrorSerializer(serializers.Serializer):
-    detail = serializers.CharField()
-
-    class Meta:
-        fields = ('detail',)
