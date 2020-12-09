@@ -10,10 +10,6 @@ def get_upload_path_doc(self, filename):
     return os.path.join(self.doc_path(), filename)
 
 
-class TextModel(models.Model):
-    text = models.TextField()
-
-
 class Course(models.Model):
     title = models.CharField(max_length=256)
     participants = models.ManyToManyField(User)
@@ -28,8 +24,9 @@ class Lecture(models.Model):
         return os.path.join(f'documents/{self.course_id}')
 
 
-class Task(TextModel):
+class Task(models.Model):
     lecture = models.ForeignKey(Lecture, on_delete=models.CASCADE)
+    text = models.TextField()
 
 
 class Solution(models.Model):
@@ -43,6 +40,7 @@ class Mark(models.Model):
     result = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)])
 
 
-class Comment(TextModel):
+class Comment(models.Model):
     mark = models.ForeignKey(Mark, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.TextField()

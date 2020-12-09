@@ -29,9 +29,6 @@ from courses.models import Course, Lecture, Task, Solution, Mark, Comment
 from courses.api.v1.serializers import CourseSerializer, LectureSerializer, ParticipantSerializer
 
 
-
-
-
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant]
@@ -52,12 +49,17 @@ class CourseViewSet(viewsets.ModelViewSet):
 
 class LectureViewSet(viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser)
-    queryset = Lecture.objects.all()
-    permission_classes = [IsAuthenticated & TeacherOnly & IsParticipant]
+    permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant]
     serializer_class = LectureSerializer
 
     def get_queryset(self):
-        return self.queryset.filter(course__participants__in=[self.request.user])
+        return Lecture.objects.filter(course__id=self.kwargs['course_pk'])
+
+    def perform_create(self, serializer):
+        serializer.save(course_id=self.kwargs['course_pk'])
+
+    def perform_update(self, serializer):
+        serializer.save(course_id=self.kwargs['course_pk'])
 
 
 class TaskView(generics.CreateAPIView):
@@ -160,14 +162,6 @@ class CompletedSolutionListView(APIView):
     def get(self, request, pk):
         solutions = Solution.objects.filter(task__pk=pk)
         return Response(SolutionSerializer(solutions, many=True).data, status=status.HTTP_200_OK)
-
-
-class AvaibleLectureListView(APIView):
-    permission_classes = [IsAuthenticated & StudentOnly]
-
-    def get(self, request, pk):
-        lectures = Lecture.objects.filter(course__pk=pk)
-        return Response(LectureSerializer(lectures, many=True).data, status=status.HTTP_200_OK)
 
 
 class AvaibleTaskListView(APIView):
