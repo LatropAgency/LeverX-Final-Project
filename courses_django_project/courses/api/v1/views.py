@@ -30,8 +30,7 @@ from courses.api.v1.serializers import CourseSerializer, LectureSerializer, Part
 
 class CourseViewSet(viewsets.ModelViewSet):
     """
-    CTUD operations with Courses
-    Only teacher may create/update/delete
+    Create, retrieve, update, delete a course instance
     """
     queryset = Course.objects.all()
     permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly]
@@ -43,8 +42,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
 class LectureViewSet(viewsets.ModelViewSet):
     """
-    CTUD operations with Lectures
-    Only teacher may create/update/delete
+    Create, retrieve, update, delete a lecture instance
     """
     parser_classes = (MultiPartParser, FormParser)
     queryset = Lecture.objects.all()
@@ -65,6 +63,9 @@ class TaskViewSet(mixins.ListModelMixin,
                   mixins.CreateModelMixin,
                   mixins.RetrieveModelMixin,
                   viewsets.GenericViewSet):
+    """
+    Create, list, retrieve a task instance
+    """
     queryset = Task.objects.all()
     permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant]
     serializer_class = TaskSerializer
@@ -83,6 +84,9 @@ class TaskViewSet(mixins.ListModelMixin,
 class ParticipantViewSet(mixins.CreateModelMixin,
                          mixins.DestroyModelMixin,
                          viewsets.GenericViewSet):
+    """
+    Create, delete a participant instance
+    """
     permission_classes = [IsAuthenticated & TeacherOnly & IsParticipant]
     serializer_class = ParticipantSerializer
 
@@ -125,6 +129,9 @@ class SolutionViewSet(mixins.ListModelMixin,
                       mixins.CreateModelMixin,
                       mixins.RetrieveModelMixin,
                       viewsets.GenericViewSet):
+    """
+    Create, list, retrieve a solution instance
+    """
     queryset = Solution.objects.all()
     permission_classes = [IsAuthenticated & StudentOrTeacherReadOnly & IsParticipant]
     serializer_class = SolutionSerializer
@@ -149,6 +156,9 @@ class MarkViewSet(mixins.CreateModelMixin,
                   mixins.RetrieveModelMixin,
                   mixins.UpdateModelMixin,
                   viewsets.GenericViewSet):
+    """
+    Create, retrieve, update a mark instance
+    """
     queryset = Mark.objects.all()
     permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant]
     serializer_class = MarkSerializer
@@ -163,6 +173,9 @@ class MarkViewSet(mixins.CreateModelMixin,
 class CommentViewSet(mixins.ListModelMixin,
                      mixins.CreateModelMixin,
                      viewsets.GenericViewSet):
+    """
+    Create, list a comment instance
+    """
     queryset = Comment.objects.all()
     permission_classes = [IsAuthenticated & IsParticipant]
     serializer_class = CommentSerializer
