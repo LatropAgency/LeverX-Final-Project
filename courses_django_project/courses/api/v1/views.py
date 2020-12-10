@@ -29,6 +29,10 @@ from courses.api.v1.serializers import CourseSerializer, LectureSerializer, Part
 
 
 class CourseViewSet(viewsets.ModelViewSet):
+    """
+    CTUD operations with Courses
+    Only teacher may create/update/delete
+    """
     queryset = Course.objects.all()
     permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly]
     serializer_class = CourseSerializer
@@ -38,6 +42,10 @@ class CourseViewSet(viewsets.ModelViewSet):
 
 
 class LectureViewSet(viewsets.ModelViewSet):
+    """
+    CTUD operations with Lectures
+    Only teacher may create/update/delete
+    """
     parser_classes = (MultiPartParser, FormParser)
     queryset = Lecture.objects.all()
     permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant]
@@ -77,8 +85,6 @@ class ParticipantViewSet(mixins.CreateModelMixin,
                          viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated & TeacherOnly & IsParticipant]
     serializer_class = ParticipantSerializer
-
-
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)

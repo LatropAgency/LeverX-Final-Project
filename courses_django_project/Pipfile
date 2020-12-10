@@ -4,13 +4,14 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-django = "*"
+Django = "*"
 djangorestframework = "*"
 djangorestframework-simplejwt = "*"
-pymysql = "*"
+PyMySQL = "*"
 drf-yasg = "*"
 cryptography = "*"
 drf-nested-routers = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 
