@@ -15,6 +15,12 @@ from users.api.v1.serializers import UserSerializer
 class CourseSerializer(serializers.ModelSerializer):
     participants = UserSerializer(many=True, read_only=True)
 
+    def create(self, validated_data):
+        course = super().create(validated_data)
+        course.participants.add(self.context['request'].user)
+        course.save()
+        return course
+
     class Meta:
         model = Course
         fields = ('id', 'title', 'participants')
@@ -37,7 +43,7 @@ class ParticipantSerializer(serializers.Serializer):
 class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
-        fields = ('id', 'lecture', 'text')
+        fields = ('id', 'text')
 
 
 class SolutionSerializer(serializers.ModelSerializer):
@@ -45,13 +51,13 @@ class SolutionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Solution
-        fields = ('id', 'task', 'user', 'text')
+        fields = ('id', 'user', 'text')
 
 
 class MarkSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mark
-        fields = ('id', 'solution', 'result')
+        fields = ('id', 'result')
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -59,4 +65,4 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ('id', 'mark', 'user', 'text')
+        fields = ('id', 'user', 'text')

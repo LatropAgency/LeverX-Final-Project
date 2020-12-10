@@ -1,19 +1,18 @@
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 
-from rest_framework import viewsets, status, generics, mixins
+from rest_framework import viewsets, status, mixins
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 
 from core.error_serializer import ErrorSerializer
 from core.success_serializer import SuccessSerializer
 from core.permissions import (
+    StudentOrTeacherReadOnly,
     TeacherOrStudentReadOnly,
     IsParticipant,
     TeacherOnly,
-    StudentOnly,
 )
 
 from users.models import User
@@ -31,29 +30,21 @@ from courses.api.v1.serializers import CourseSerializer, LectureSerializer, Part
 
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
-    permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant]
+    permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly]
     serializer_class = CourseSerializer
 
     def get_queryset(self):
         return self.queryset.filter(participants__in=[self.request.user])
 
-    def create(self, request, *args, **kwargs):
-        serializer = CourseSerializer(data=request.data)
-        if serializer.is_valid():
-            course = Course.objects.create(**serializer.data)
-            course.participants.add(request.user)
-            course.save()
-            return Response(CourseSerializer(course).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class LectureViewSet(viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser)
+    queryset = Lecture.objects.all()
     permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant]
     serializer_class = LectureSerializer
 
     def get_queryset(self):
-        return Lecture.objects.filter(course__id=self.kwargs['course_pk'])
+        return self.queryset.filter(course__id=self.kwargs['course_pk'])
 
     def perform_create(self, serializer):
         serializer.save(course_id=self.kwargs['course_pk'])
@@ -62,19 +53,44 @@ class LectureViewSet(viewsets.ModelViewSet):
         serializer.save(course_id=self.kwargs['course_pk'])
 
 
-class TaskView(generics.CreateAPIView):
-    permission_classes = [IsAuthenticated & TeacherOnly]
+class TaskViewSet(mixins.ListModelMixin,
+                  mixins.CreateModelMixin,
+                  mixins.RetrieveModelMixin,
+                  viewsets.GenericViewSet):
+    queryset = Task.objects.all()
+    permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant]
     serializer_class = TaskSerializer
 
+    def get_queryset(self):
+        return self.queryset.filter(lecture__id=self.kwargs['lecture_pk'],
+                                    lecture__course__id=self.kwargs['course_pk'])
 
-class ParticipantView(APIView):
-    permission_classes = [IsAuthenticated & TeacherOnly]
+    def post(self, request, *args, **kwargs):
+        return self.create(self, request, *args, **kwargs)
 
-    def post(self, request, pk):
+    def perform_create(self, serializer):
+        serializer.save(lecture_id=self.kwargs['lecture_pk'])
+
+
+class ParticipantViewSet(mixins.CreateModelMixin,
+                         mixins.DestroyModelMixin,
+                         viewsets.GenericViewSet):
+    permission_classes = [IsAuthenticated & TeacherOnly & IsParticipant]
+    serializer_class = ParticipantSerializer
+
+
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
         serializer = ParticipantSerializer(data=request.data)
         if serializer.is_valid():
             user = get_object_or_404(User, pk=serializer.data['id'])
-            course = get_object_or_404(Course, pk=pk)
+            course = Course.objects.get(pk=kwargs['course_pk'])
             if user not in course.participants.all():
                 course.participants.add(user)
                 course.save()
@@ -84,15 +100,14 @@ class ParticipantView(APIView):
             return Response(SuccessSerializer().data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @staticmethod
-    def delete(request, pk):
+    def destroy(self, request, *args, **kwargs):
         serializer = ParticipantSerializer(data=request.data)
         if serializer.is_valid():
             user = get_object_or_404(User, pk=serializer.data['id'])
             if user.role == RoleTypes.TEACHER.value:
                 return Response(ErrorSerializer({'detail': "You can't remove teacher"}).data,
                                 status=status.HTTP_403_FORBIDDEN)
-            course = get_object_or_404(Course, pk=pk)
+            course = Course.objects.get(pk=kwargs['course_pk'])
             if user not in course.participants.all():
                 raise Http404
             course.participants.remove(user)
@@ -100,81 +115,61 @@ class ParticipantView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class SolutionView(generics.ListCreateAPIView):
+class SolutionViewSet(mixins.ListModelMixin,
+                      mixins.CreateModelMixin,
+                      mixins.RetrieveModelMixin,
+                      viewsets.GenericViewSet):
     queryset = Solution.objects.all()
-    permission_classes = [IsAuthenticated & StudentOnly]
+    permission_classes = [IsAuthenticated & StudentOrTeacherReadOnly & IsParticipant]
     serializer_class = SolutionSerializer
+
+    def get_queryset(self):
+        if self.request.user.role == RoleTypes.STUDENT.value:
+            return self.queryset.filter(task__id=self.kwargs['task_pk'], user__id=self.request.user.id,
+                                        task__lecture__id=self.kwargs['lecture_pk'],
+                                        task__lecture__course__id=self.kwargs['course_pk'])
+        return self.queryset.filter(task__id=self.kwargs['task_pk'],
+                                    task__lecture__id=self.kwargs['lecture_pk'],
+                                    task__lecture__course__id=self.kwargs['course_pk'])
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
-    def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
-
-    def create(self, request, *args, **kwargs):
-        serializer = SolutionSerializer(data=request.data)
-        if serializer.is_valid():
-            task = get_object_or_404(Task, id=serializer.data['task'])
-            solution = Solution.objects.create(user=request.user, task=task, text=serializer.data['text'])
-            return Response(SolutionSerializer(solution).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
+    def perform_create(self, serializer):
+        serializer.save(task_id=self.kwargs['task_pk'], user_id=self.request.user.id)
 
 
-class MarkView(mixins.UpdateModelMixin, generics.ListCreateAPIView):
+class MarkViewSet(mixins.CreateModelMixin,
+                  mixins.RetrieveModelMixin,
+                  mixins.UpdateModelMixin,
+                  viewsets.GenericViewSet):
     queryset = Mark.objects.all()
-    permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly]
+    permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant]
     serializer_class = MarkSerializer
 
     def put(self, request, *args, **kwargs):
         return self.update(request, *args, **kwargs)
 
+    def perform_create(self, serializer):
+        serializer.save(solution_id=self.kwargs['solution_pk'])
 
-class CommentView(mixins.RetrieveModelMixin, mixins.CreateModelMixin, generics.GenericAPIView):
+
+class CommentViewSet(mixins.ListModelMixin,
+                     mixins.CreateModelMixin,
+                     viewsets.GenericViewSet):
     queryset = Comment.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated & IsParticipant]
     serializer_class = CommentSerializer
 
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
-
-    def retrieve(self, request, *args, **kwargs):
-        comments = Comment.objects.filter(mark_id=kwargs['pk'])
-        return Response(CommentSerializer(comments, many=True).data, status=status.HTTP_200_OK)
+    def get_queryset(self):
+        return self.queryset.filter(mark__id=self.kwargs['mark_pk'],
+                                    mark__solution__id=self.kwargs['solution_pk'],
+                                    mark__solution__task__id=self.kwargs['task_pk'],
+                                    mark__solution__task__lecture__id=self.kwargs['lecture_pk'],
+                                    mark__solution__task__lecture__course__id=self.kwargs['course_pk'])
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
-    def create(self, request, *args, **kwargs):
-        serializer = CommentSerializer(data=request.data)
-        if serializer.is_valid():
-            mark = get_object_or_404(Mark, id=serializer.data['mark'])
-            comment = Comment.objects.create(user=request.user, mark=mark, text=serializer.data['text'])
-            return Response(CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class CompletedSolutionListView(APIView):
-    permission_classes = [IsAuthenticated & TeacherOnly]
-
-    def get(self, request, pk):
-        solutions = Solution.objects.filter(task__pk=pk)
-        return Response(SolutionSerializer(solutions, many=True).data, status=status.HTTP_200_OK)
-
-
-class AvaibleTaskListView(APIView):
-    permission_classes = [IsAuthenticated & StudentOnly]
-
-    def get(self, request, pk):
-        tasks = Task.objects.filter(lecture__pk=pk)
-        return Response(TaskSerializer(tasks, many=True).data, status=status.HTTP_200_OK)
-
-
-class SolutionMarkView(APIView):
-    permission_classes = [IsAuthenticated & StudentOnly]
-
-    def get(self, request, pk):
-        marks = Mark.objects.filter(solution__pk=pk)
-        return Response(MarkSerializer(marks, many=True).data, status=status.HTTP_200_OK)
+    def perform_create(self, serializer):
+        serializer.save(mark_id=self.kwargs['mark_pk'], user_id=self.request.user.id)

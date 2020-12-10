@@ -1,10 +1,7 @@
+from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
-from courses.models import (
-    Lecture,
-    Course,
-    Task,
-)
+from courses.models import Course
 
 from users.enum_types import RoleTypes
 
@@ -30,12 +27,6 @@ class StudentOrTeacherReadOnly(BasePermission):
 
 
 class IsParticipant(BasePermission):
-    def has_object_permission(self, request, view, obj):
-        if issubclass(type(obj), Course):
-            return request.user in obj.participants.all()
-        if issubclass(type(obj), Lecture):
-            return request.user in obj.course.participants.all()
-        if issubclass(type(obj), Task):
-            return request.user in obj.lecture.course.participants.all()
-        else:
-            return False
+    def has_permission(self, request, view):
+        course = get_object_or_404(Course, pk=view.kwargs['course_pk'])
+        return request.user in course.participants.all()
