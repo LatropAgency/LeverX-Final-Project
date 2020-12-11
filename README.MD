@@ -3,7 +3,7 @@ Enter `docker-compose up --build` in CLI
 # How to run app
 Enter `docker-compose run web` in CLI
 # Description
-This django project is my final task  of the LeverX courses. It's a simple REST API application. There are 2 types of users. First one is students and second one is teachers.
+This django project is my final task of the LeverX courses. It's a simple REST API application. There are 2 types of users. First one is students and second one is teachers.
 ### Teacher may:
 * CRUD his courses
 * adding/deleting a student to their course
