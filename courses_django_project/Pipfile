@@ -12,6 +12,7 @@ drf-yasg = "*"
 cryptography = "*"
 drf-nested-routers = "*"
 psycopg2-binary = "*"
+gunicorn = "*"
 
 [dev-packages]
 
