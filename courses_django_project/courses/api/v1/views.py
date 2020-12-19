@@ -2,7 +2,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets, status, mixins
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
@@ -33,7 +33,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     Create, retrieve, update, delete a course instance
     """
     queryset = Course.objects.all()
-    permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly]
+    permission_classes = (IsAuthenticated & TeacherOrStudentReadOnly,)
     serializer_class = CourseSerializer
 
     def get_queryset(self):
@@ -44,9 +44,9 @@ class LectureViewSet(viewsets.ModelViewSet):
     """
     Create, retrieve, update, delete a lecture instance
     """
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (MultiPartParser, )
     queryset = Lecture.objects.all()
-    permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant]
+    permission_classes = (IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant,)
     serializer_class = LectureSerializer
 
     def get_queryset(self):
@@ -67,7 +67,7 @@ class TaskViewSet(mixins.ListModelMixin,
     Create, list, retrieve a task instance
     """
     queryset = Task.objects.all()
-    permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant]
+    permission_classes = (IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant,)
     serializer_class = TaskSerializer
 
     def get_queryset(self):
@@ -87,7 +87,7 @@ class ParticipantViewSet(mixins.CreateModelMixin,
     """
     Create, delete a participant instance
     """
-    permission_classes = [IsAuthenticated & TeacherOnly & IsParticipant]
+    permission_classes = (IsAuthenticated & TeacherOnly & IsParticipant,)
     serializer_class = ParticipantSerializer
 
     def post(self, request, *args, **kwargs):
@@ -133,7 +133,7 @@ class SolutionViewSet(mixins.ListModelMixin,
     Create, list, retrieve a solution instance
     """
     queryset = Solution.objects.all()
-    permission_classes = [IsAuthenticated & StudentOrTeacherReadOnly & IsParticipant]
+    permission_classes = (IsAuthenticated & StudentOrTeacherReadOnly & IsParticipant,)
     serializer_class = SolutionSerializer
 
     def get_queryset(self):
@@ -160,7 +160,7 @@ class MarkViewSet(mixins.CreateModelMixin,
     Create, retrieve, update a mark instance
     """
     queryset = Mark.objects.all()
-    permission_classes = [IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant]
+    permission_classes = (IsAuthenticated & TeacherOrStudentReadOnly & IsParticipant,)
     serializer_class = MarkSerializer
 
     def put(self, request, *args, **kwargs):
@@ -177,7 +177,7 @@ class CommentViewSet(mixins.ListModelMixin,
     Create, list a comment instance
     """
     queryset = Comment.objects.all()
-    permission_classes = [IsAuthenticated & IsParticipant]
+    permission_classes = (IsAuthenticated & IsParticipant,)
     serializer_class = CommentSerializer
 
     def get_queryset(self):

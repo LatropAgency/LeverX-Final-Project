@@ -8,5 +8,5 @@ class UserView(generics.CreateAPIView):
     """
     Creates a user instance
     """
-    permission_classes = [~IsAuthenticated]
+    permission_classes = (~IsAuthenticated,)
     serializer_class = UserSerializer
